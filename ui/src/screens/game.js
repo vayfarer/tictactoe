@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
 
-export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn} ) => {
+export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn,
+    winner, gameOver, oppForfeit } ) => {
 
     function leave_table(){
-        if (window.confirm('Are you sure? Leaving the table will forfeit the game')) {
-            setTable(null)
+        if (oppForfeit || gameOver || opponent === ''){
+            sendJsonMessage({'type': 'leave_table', 'user_id': userId, 'table_id': tableId})
+        }
+        else if (window.confirm('Are you sure? Leaving the table will forfeit the game')) {
+            sendJsonMessage({'type': 'leave_table', 'user_id': userId, 'table_id': tableId})
         } 
     }
 
     function move(square){
-        if (turn){
+        if (turn && !gameOver && !oppForfeit){
             setTurn(false);
             sendJsonMessage({'type': 'turn', 'user_id': userId, 'table_id': tableId, 'square':square})
         }
@@ -22,12 +26,14 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
         <>
         <p>
             Logged in as <b>{username}</b> <br/>
-            You are player <b>{gameState[9]}</b>. It is {!turn &&<>not</>} your turn.<br/>
-            {opponent===""? <>Waiting for opponent to join.</> : <>Your opponent is {opponent}</>}
+            {!gameOver && <>You are player <b>{gameState[9]}</b>. It is {!turn &&<>not</>} your turn.<br/>
+            {opponent===""? <>Waiting for opponent to join.</> : <>Your opponent is {opponent}</>}<br/></>}
+            {!gameOver && oppForfeit && <>{opponent} has left the game and forfeited.<br/> </>}
+            {gameOver && (winner===''? <><b>Game over in draw!</b></>:<><b>Game over!<br/> {winner} is victorious!</b></>)}
         </p>
         
         <p>
-            <button title='Forfeit and leave tic tac toe table. (not fully implemented)' onClick={leave_table}>Back</button>
+            <button title='Leave tic tac toe game.' onClick={leave_table}>Back</button>
         </p>
 
 

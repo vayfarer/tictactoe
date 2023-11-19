@@ -20,9 +20,12 @@ function App() {
   const [gameState, setGameState] = useState("         --");
   const [turn, setTurn] = useState(false);
   const [opponent, setOpponent] = useState('');
+  const [winner, setWinner] = useState('');
+  const [gameOver, setGameOver] = useState(false);
+  const [oppForfeit, setOppForfeit] = useState(false);
 
 
-  const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
+  const WS_URL = `ws://127.0.0.1:8000/ws`
   const [socketUrl, setSocketUrl] = useState(WS_URL);
 
 
@@ -55,23 +58,32 @@ function App() {
         setMakingTable(false);
         setTableId(lastJsonMessage.table_id)
         sendJsonMessage({'type':'get_table', 'user_id':userId, 'table_id':lastJsonMessage.table_id})
-        setTable(true)
+        setTable(true);
+        setOppForfeit(false);
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'game_state'){
         setGameState(lastJsonMessage.game_state);
-        setOpponent(lastJsonMessage.opponent)
-        if (lastJsonMessage.game_state[9] === lastJsonMessage.game_state[10]){
-          setTurn(true);
-        }
+        setOpponent(lastJsonMessage.opponent);
+        setGameOver(lastJsonMessage.game_over);
+        if (lastJsonMessage.game_over){setWinner(lastJsonMessage.winner);}
+        else if (lastJsonMessage.game_state[9] === lastJsonMessage.game_state[10]){setTurn(true);}
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'all_tables'){
         setTablesList(lastJsonMessage.tables)
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'accept_join'){
-        setMakingTable(false);
         setTableId(lastJsonMessage.table_id)
         sendJsonMessage({'type':'get_table', 'user_id':userId, 'table_id':lastJsonMessage.table_id})
-        setTable(true)
+        setTable(true);
+        setOppForfeit(false);
+      }
+      else if (lastJsonMessage && lastJsonMessage.type === 'accept_leave_table'){
+        sendJsonMessage({'type':'get_all_tables'});
+        setTable(false);
+        setWinner('');
+      }
+      else if (lastJsonMessage && lastJsonMessage.type === 'opponent_forfeit'){
+        setOppForfeit(true);
       }
       else{
       }
@@ -97,7 +109,8 @@ function App() {
      userId={userId} />}
 
     {table && <Game username={username} setTable={setTable} gameState={gameState} sendJsonMessage={sendJsonMessage} userId={userId}
-    tableId={tableId} turn={turn} setTurn={setTurn} opponent={opponent} />}
+    tableId={tableId} turn={turn} setTurn={setTurn} opponent={opponent} winner={winner} gameOver={gameOver} oppForfeit={oppForfeit}
+     />}
 
     {makingTable === true && <MakeTable sendJsonMessage={sendJsonMessage} userId={userId} setMakingTable={setMakingTable} />}
 
