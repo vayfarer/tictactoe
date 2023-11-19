@@ -21,3 +21,12 @@ ui/.env.production.local
 ui/npm-debug.log*
 ui/yarn-debug.log*
 ui/yarn-error.log*
+server/.idea/.gitignore
+server/.idea/misc.xml
+server/.idea/modules.xml
+server/.idea/vcs.xml
+server/__pycache__/constants.cpython-310.pyc
+server/__pycache__/main.cpython-310.pyc
+server/.gcloudignore
+server/server.iml
+ui/package-lock.json

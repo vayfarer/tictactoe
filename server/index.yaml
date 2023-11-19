@@ -1,0 +1,7 @@
+indexes:
+- kind: tables
+  properties:
+  - name: open
+  - name: O_username
+  - name: X_username
+

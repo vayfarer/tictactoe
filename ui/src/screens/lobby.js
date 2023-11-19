@@ -1,45 +1,50 @@
 import React, { useEffect, useState } from 'react';
 
-export const Lobby = ( {set_login, username, set_username, set_table, set_make_table} ) => {
+export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable, sendJsonMessage, tablesList} ) => {
 
-    const tables_list = [
-        {id:123,x:'Abe',o:'vacant'},
-        {id:124,x:'vacant',o:'Julie'}
-    ]
-
-    function logout(){
-        set_login(false);
-        set_username('');
+    function logout() {
+        sendJsonMessage({'type': 'logout'});
+        setLogin(false);
+        setUsername('');
     }
 
-    function join_random(){
+    function joinRandom() {
 
     }
 
+    function makeTable() {
+        setMakingTable(true);
+    }
 
+    function getAllTables() {
+        sendJsonMessage({'type': 'get_all_tables'});
+    }
 
-    // useEffect(() => {
-    //     loadCustomers();
-    // }, []);
+    function joinTable(as, tableId) {
+        sendJsonMessage({'type': 'join_table', 'as': as, 'user_id': userId, 'table_id': tableId});
+
+    }
 
     return (
         <>
             <p>
             Logged in as <b>{username}</b> <br/>
-            (user identification eventually to be validated by back end)
             </p>
             <p>
-            <button title='Join a game immediately! (not implemented)' onClick={join_random}><b>Play Now!</b></button>&nbsp;
-            <button title='Make a game table (not implemented)' onClick={join_random}>Make a table</button>&nbsp;
+            <button title='Join a game immediately! (not implemented)' onClick={joinRandom}><b>Play Now!</b></button>&nbsp;
+            <button title='Make a game table' onClick={makeTable}>Make a table</button>&nbsp;
             <button title='Leave tic tac toe lobby.' onClick={logout}>Back</button>
             </p>
-            {/* <h2>Game Lobby</h2> */}
-            <div className='App'><LobbyList tables_list={tables_list} set_table={set_table} /></div>
+            <div className='App'><LobbyList tablesList={tablesList} joinTable={joinTable} /></div>
+
+            <button title='Refresh the list of game tables.' onClick={getAllTables}>Refresh</button>
+
+
         </>
     );
 }
 
-const LobbyList = ({tables_list, set_table}) => {
+const LobbyList = ({tablesList, joinTable}) => {
     return (
         <table className="entity">
             <thead>
@@ -50,25 +55,21 @@ const LobbyList = ({tables_list, set_table}) => {
                 </tr>
             </thead>
             <tbody>
-                {tables_list.map((table_row, i) => <LobbyRow table_row={table_row}
-                    key={i} set_table={set_table}/>)}
+                {tablesList.map((tableRow, i) => <LobbyRow tableRow={tableRow}
+                    key={i} joinTable={joinTable} />)}
             </tbody>
         </table>
     );
 }
 
 
-const LobbyRow = ({ table_row, set_table }) => {
-
-    function sit_table(){
-        set_table(table_row.id);
-    }
+const LobbyRow = ({ tableRow, joinTable }) => {
 
     return (
         <tr>
-            <td>{table_row.id}</td>
-            <td>{(table_row.x !== 'vacant') ? table_row.x : <button onClick={sit_table} title='Join game as Player X'>Join</button>}</td>
-            <td>{(table_row.o !== 'vacant') ? table_row.o : <button onClick={sit_table} title='Join game as Player O'>Join</button>}</td>
+            <td>{tableRow.table_id}</td>
+            <td>{(tableRow.X_username !== "") ? tableRow.X_username : <button onClick={()=>joinTable('X', tableRow.table_id)} title='Join game as Player X'>Join</button>}</td>
+            <td>{(tableRow.O_username !== "") ? tableRow.O_username : <button onClick={()=>joinTable('O', tableRow.table_id)} title='Join game as Player O'>Join</button>}</td>
         </tr>
     );
 }

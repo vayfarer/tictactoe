@@ -1,53 +1,59 @@
 import React, { useEffect, useState } from 'react';
 
-export const Game = ( {username, set_table} ) => {
-
-    const game_state = {'0':'X','1':'O','2':null,'3':'O','4':'X','5':null,'6':null,'7':null,'8':null}
+export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn} ) => {
 
     function leave_table(){
-        // let forfeit = window.confirm('Are you sure? Leaving the table will forfeit the game')
         if (window.confirm('Are you sure? Leaving the table will forfeit the game')) {
-            set_table(null)
+            setTable(null)
         } 
     }
 
-    // useEffect(() => {
-    //     loadCustomers();
-    // }, []);
+    function move(square){
+        if (turn){
+            setTurn(false);
+            sendJsonMessage({'type': 'turn', 'user_id': userId, 'table_id': tableId, 'square':square})
+        }
+        else{
+            // It is not your turn!!
+        }
+    }
 
     return (
         <>
         <p>
             Logged in as <b>{username}</b> <br/>
-            You are playing as [X, O]
+            You are player <b>{gameState[9]}</b>. It is {!turn &&<>not</>} your turn.<br/>
+            {opponent===""? <>Waiting for opponent to join.</> : <>Your opponent is {opponent}</>}
         </p>
         
         <p>
-            <button title='Forfeit and leave tic tac toe table.' onClick={leave_table}>Back</button>
+            <button title='Forfeit and leave tic tac toe table. (not fully implemented)' onClick={leave_table}>Back</button>
         </p>
 
 
-        <div class="board-area">
-        <p>
-            <table class="board">
+        <div className="board-area">
+            <table className="board">
+            <tbody>
             <tr>
-                <td class={game_state['0']? "" : "empty"}>  {game_state['0']} </td>
-                <td class={game_state['1']? "" : "empty"}> {game_state['1']} </td>
-                <td class={game_state['2']? "" : "empty"}> {game_state['2']} </td>
+                <td onClick={()=>move(0)} className={gameState[0]!==" "? "" : "empty"}> {gameState[0]} </td>
+                <td onClick={()=>move(1)} className={gameState[1]!==" "? "" : "empty"}> {gameState[1]} </td>
+                <td onClick={()=>move(2)} className={gameState[2]!==" "? "" : "empty"}> {gameState[2]} </td>
             </tr>
             <tr>
-                <td class={game_state['3']? "" : "empty"}> {game_state['3']} </td>
-                <td class={game_state['4']? "" : "empty"}> {game_state['4']} </td>
-                <td class={game_state['5']? "" : "empty"}> {game_state['5']} </td>
+                <td onClick={()=>move(3)} className={gameState[3]!==" "? "" : "empty"}> {gameState[3]} </td>
+                <td onClick={()=>move(4)} className={gameState[4]!==" "? "" : "empty"}> {gameState[4]} </td>
+                <td onClick={()=>move(5)} className={gameState[5]!==" "? "" : "empty"}> {gameState[5]} </td>
             </tr>
             <tr>
-                <td class={game_state['6']? "" : "empty"}> {game_state['6']} </td>
-                <td class={game_state['7']? "" : "empty"}> {game_state['7']} </td>
-                <td class={game_state['8']? "" : "empty"}> {game_state['8']} </td>
+                <td onClick={()=>move(6)} className={gameState[6]!==" "? "" : "empty"}> {gameState[6]} </td>
+                <td onClick={()=>move(7)} className={gameState[7]!==" "? "" : "empty"}> {gameState[7]} </td>
+                <td onClick={()=>move(8)} className={gameState[8]!==" "? "" : "empty"}> {gameState[8]} </td>
             </tr>
+            </tbody>
             </table>
-        </p>
         </div>
+
+        <p></p>
         </>
     );
 }
