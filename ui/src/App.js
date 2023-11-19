@@ -22,7 +22,7 @@ function App() {
   const [opponent, setOpponent] = useState('');
 
 
-  const WS_URL = `ws://127.0.0.1:8000/ws`
+  const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
   const [socketUrl, setSocketUrl] = useState(WS_URL);
 
 
