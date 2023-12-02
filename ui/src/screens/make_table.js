@@ -43,7 +43,7 @@ export const MakeTable = ( {sendJsonMessage, userId, setMakingTable} ) => {
             <select id="make_table_opponent">
                 <option value="vacant">Vacant</option>
                 <option value="easy_ai">Easy AI</option>
-                <option value="impossible_ai">Impossible AI</option>
+                <option value="hard_ai">Hard AI</option>
             </select>
             </span></div>
             <button type="submit">Make Game Table!</button>

@@ -4,20 +4,17 @@
 import websockets.exceptions
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
-import requests
 from google.cloud import datastore
 import json
 import constants
 import time
 from tictactoe import win_condition, draw_condition, hard_ai, easy_ai
-# import re
+from db import (db_delete_user, db_get_tables, db_make_table, db_join_table,
+                db_get_table, db_game_turn, get_username, leave_table,
+                db_rematch_table)
 
 client = datastore.Client()
 app = FastAPI()
-
-
-class GetUsernameError(Exception):
-    pass
 
 
 class UserNotConnected(Exception):
@@ -80,6 +77,7 @@ async def get():
 
 @app.get("/delete")
 async def get():
+    """Convenient function to empty the database during development."""
     query = client.query(kind=constants.tables)
     results1 = list(query.fetch())
     for e in results1:
@@ -90,20 +88,6 @@ async def get():
         client.delete(e.key)
     return (json.dumps({'deleted_users': results2,
                         'deleted_tables': results1}), 204)
-
-
-def get_username():
-    """GET Request to username microservice."""
-
-    url = "http://cs361-microservice-404417.wl.r.appspot.com/"
-    try:
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-    except requests.ConnectionError as error:
-        raise GetUsernameError(error)
-    except requests.exceptions.HTTPError as error:
-        raise GetUsernameError(error)
-    return response.json()['username'].strip()
 
 
 @app.websocket("/ws")
@@ -119,393 +103,46 @@ async def websocket_login(websocket: WebSocket):
 
             # Login
             elif data['type'] == 'login':
-                # get a username
-
-                has_username = False
-                username = None
-                while not has_username:
-                    try:
-                        username = get_username()
-                    except GetUsernameError:
-                        await websocket.send_json({
-                            'type': 'error',
-                            'error': f'Get username microservice error'})
-                        break
-
-                    query = client.query(kind=constants.users)
-                    query.add_filter('username', '=', username)
-                    results = list(query.fetch())
-                    if not results:
-                        has_username = True
-
-                if has_username and username:
-                    user = datastore.entity.Entity(key=client.key(constants.users))
-                    user.update({'username': username, 'table': None})
-                    client.put(user)
-                    user_id = user.key.id
-                    manager.add_user(user_id, websocket)
-                    print(f'user_id {user_id} created')
-                    await websocket.send_json({'type': 'accept_user', 'username': username, 'user_id': user_id})
-
+                user_id = await get_username(websocket, manager)
             # logout
             elif data['type'] == 'logout':
                 if user_id:
                     manager.remove_user(user_id)
-                    user_key = client.key(constants.users, user_id)
-                    user = client.get(key=user_key)
-                    if user:
-                        if user['table']:
-                            table_key = client.key(constants.tables, user['table'])
-                            table = client.get(key=table_key)
-                            if table:
-                                if user.key.id == table['X']:
-                                    table['X'] = None
-                                    table['X_username'] = ''
-                                if user.key.id == table['O']:
-                                    table['O'] = None
-                                    table['O_username'] = ''
-                                if table['O'] is None and table['X'] is None:
-                                    client.delete(table_key)
-                                    print(f'table id {table.key.id} removed')
-                                else:
-                                    table['open'] = True
-                                    client.put(table)
-                        client.delete(user_key)
-                        print(f'user id {user_id} removed')
+                    db_delete_user(user_id)
 
             # get all tables
             elif data['type'] == 'get_all_tables':
-                query = client.query(kind=constants.tables)
-                query.add_filter('open', '=', True)
-                query.projection = ['X_username', 'O_username']
-                results = list(query.fetch())
-                for e in results:
-                    e['table_id'] = e.key.id
-                await websocket.send_json({'type': 'all_tables', 'tables': results})
+                await websocket.send_json({'type': 'all_tables', 'tables': db_get_tables()})
 
             # make a table
             elif data['type'] == 'make_table':
                 print(f'make_table received')
-
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user:
-                    await websocket.send_json({'type': 'error', 'error': 'user does not exist'})
-                else:
-                    table = datastore.entity.Entity(key=client.key(constants.tables))
-                    if data['X'] == "player":
-                        table.update({'X': user.key.id, 'X_username': user['username'], 'X_rematch': False})
-                        if data['O'] == 'vacant':
-                            table.update({'open': True, 'O': None, 'O_username': ''})
-                        else:
-                            table.update({'open': False})
-                    else:
-                        table.update({'O': user.key.id, 'O_username': user['username'], 'O_rematch': False})
-                        if data['X'] == 'vacant':
-                            table.update({'open': True, 'X': None, 'X_username': ''})
-                        else:
-                            table.update({'open': False})
-
-                    if table['open']:
-                        table.update({'turn': 'X', 'game_state': "         "})
-                        client.put(table)
-                        table_id = table.key.id
-                        user.update({'table': table_id})
-                        client.put(user)
-                        manager.user_in_game(user.key.id, True)
-                        await websocket.send_json({'type': 'accept_table', 'table_id': table_id})
-                        await manager.broadcast_tables(True)
-                    else:
-                        # client code should make this redundant in future update.
-                        await websocket.send_json({'type': 'accept_table_ai'})
+                await db_make_table(websocket, manager, data)
 
             # join table
             elif data['type'] == 'join_table':
-                table_key = client.key(constants.tables, data['table_id'])
-                table = client.get(key=table_key)
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user or not table:
-                    await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
-                    continue
-                elif table[data['as']] is not None:
-                    await websocket.send_json({'type': 'error', 'error': 'position is not vacant'})
-                    continue
-
-                table.update({data['as']: user.key.id, data['as'] + '_username': user['username'], 'open': False})
-                user.update({'table': table.key.id})
-                client.put(table)
-                client.put(user)
-
-                opp_as = 'O' if data['as'] == 'X' else 'X'
-                opponent_id = table[opp_as]
-                next_turn = 'O' if table['turn'] == 'X' else 'X'
-
-                if opponent_id:
-                    try:
-                        await manager.send_user_json(
-                            opponent_id,
-                            {'type': 'game_state',
-                             'opponent': user['username'], # you are your opponent's opponent.
-                             'game_state': table['game_state'] + table['turn'] + next_turn})
-                    except UserNotConnected:
-                        opp_key = client.key(constants.users, user_id)
-                        if client.get(key=opp_key):
-                            client.delete(opp_key)
-                        await websocket.send_json({'type': 'error', 'error': 'opponent not connected'})
-
-                await websocket.send_json({'type': 'accept_join', 'table_id': table.key.id})
-                await manager.broadcast_tables(True)
+                await db_join_table(websocket, manager, data)
 
             # get singular table upon making or joining.
             elif data['type'] == 'get_table':
-                table_key = client.key(constants.tables, data['table_id'])
-                table = client.get(key=table_key)
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user or not table:
-                    await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
-                    continue
-                elif user.key.id == table['X']:
-                    player = 'X'
-                    opponent = table['O_username']
-                elif user.key.id == table['O']:
-                    player = 'O'
-                    opponent = table['X_username']
-                else:
-                    await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
-                    continue
-
-                game = table['game_state'] + player + table['turn']
-                await websocket.send_json({'type': 'game_state', 'opponent': opponent, 'game_state': game,
-                                           'game_over': False, 'winner': ''})
+                await db_get_table(websocket, data)
 
             # player submits a turn
             elif data['type'] == 'turn':
-                table_key = client.key(constants.tables, data['table_id'])
-                table = client.get(key=table_key)
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user or not table:
-                    await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
-                    continue
-                elif user.key.id == table['X']:
-                    player = 'X'
-                    next_turn = 'O'
-                    opponent = table['O_username']
-                    opponent_id = table['O']
-                elif user.key.id == table['O']:
-                    player = 'O'
-                    next_turn = 'X'
-                    opponent = table['X_username']
-                    opponent_id = table['X']
-                else:
-                    await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
-                    continue
+                await db_game_turn(websocket, manager, data)
 
-                if player != table['turn']:
-                    await websocket.send_json({'type': 'error', 'error': 'not your turn'})
-                else:
-                    game_state_list = list(table['game_state'])
-                    if game_state_list[data['square']] == " ":
-                        game_state_list[data['square']] = player
-                    else:
-                        # illegal move
-                        await websocket.send_json({'type': 'error', 'error': 'illegal move'})
-                        continue
-                    table['game_state'] = "".join(game_state_list)
-
-                    # test win condition
-                    game_over = False
-                    winner = ''
-                    if win_condition(player, table['game_state']):
-                        game_over = True
-                        winner = user['username']
-                    # test game over or draw
-                    if draw_condition(table['game_state']):
-                        game_over = True
-
-                    table['turn'] = next_turn
-                    client.put(table)
-
-                    if opponent_id:
-                        try:
-                            await manager.send_user_json(
-                                opponent_id,
-                                {'type': 'game_state',
-                                 'opponent': user['username'], # you are your opponent's opponent.
-                                 'game_state': table['game_state'] + next_turn + next_turn, 'game_over': game_over,
-                                 'winner': winner})
-                        except UserNotConnected:
-                            opp_key = client.key(constants.users, user_id)
-                            if client.get(key=opp_key):
-                                client.delete(opp_key)
-                            await websocket.send_json({'type': 'error', 'error': 'opponent not connected'})
-
-                    await websocket.send_json({'type': 'game_state', 'opponent': opponent,
-                                               'game_state': table['game_state'] + player + next_turn,
-                                               'game_over': game_over, 'winner': winner})
-
+            # player requests a rematch
             elif data['type'] == 'rematch':
-                table_key = client.key(constants.tables, data['table_id'])
-                table = client.get(key=table_key)
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user or not table:
-                    await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
-                    continue
-                elif user.key.id == table['X']:
-                    player = 'X'
-                    opponent = 'O'
-                    opponent_id = table['O']
-                elif user.key.id == table['O']:
-                    player = 'O'
-                    opponent = 'X'
-                    opponent_id = table['X']
-                else:
-                    await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
-                    continue
+                await db_rematch_table(websocket, manager, data)
 
-                if not (draw_condition(table['game_state']) or win_condition('O',table['game_state'])
-                        or win_condition('X', table['game_state'])):
-                    await websocket.send_json({'type': 'error', 'error': 'game is not over yet.'})
-                    continue
-
-                if table[opponent+'_rematch']:
-                    # other player already requested rematch
-                    table.update({'game_state': "         ", 'turn': 'X', 'X_rematch': False, 'O_rematch': False})
-                    # swap player positions for rematch.
-                    table['X'], table['X_username'], table['O'], table['O_username'], player \
-                        = table['O'], table['O_username'], table['X'], table['X_username'], opponent
-                    client.put(table)
-                    if opponent_id:
-                        try:
-                            await manager.send_user_json(opponent_id, {'type': 'accept_rematch'})
-                            continue
-                        except UserNotConnected:
-                            client.delete(table_key)
-                            opp_key = client.key(constants.users, user_id)
-                            if client.get(key=opp_key):
-                                client.delete(opp_key)
-                            await websocket.send_json({'type': 'error_rematch', 'error': 'rematch opponent not connected'})
-
-                if opponent_id:
-                    table.update({player+'_rematch': True})
-                    client.put(table)
-                    try:
-                        await manager.send_user_json(opponent_id, {'type': 'request_rematch'})
-                        continue
-                    except UserNotConnected:
-                        client.delete(table_key)
-                        opp_key = client.key(constants.users, user_id)
-                        if client.get(key=opp_key):
-                            client.delete(opp_key)
-                        await websocket.send_json({'type': 'error_rematch', 'error': 'rematch opponent not connected'})
-
-                table['X'], table['X_username'], table['O'], table['O_username'], player \
-                    = table['O'], table['O_username'], table['X'], table['X_username'], opponent
-                table.update({opponent: None, opponent+'_username': '', 'turn': 'X', 'open': True})
-                client.put(table)
-                await websocket.send_json({'type': 'accept_table', 'table_id': table.key.id})
-                await manager.broadcast_tables(True)
-                continue
-
+            # player leaves a table
             elif data['type'] == 'leave_table':
-                table_key = client.key(constants.tables, data['table_id'])
-                table = client.get(key=table_key)
-                user_key = client.key(constants.users, data['user_id'])
-                user = client.get(key=user_key)
-                if not user or not table:
-                    await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
-                    continue
-                elif user.key.id == table['X']:
-                    table['X'] = None
-                    table['X_username'] = ''
-                    opponent_id = table['O']
-                elif user.key.id == table['O']:
-                    table['O'] = None
-                    table['O_username'] = ''
-                    opponent_id = table['X']
-                else:
-                    await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
-                    continue
-
-                user['table'] = None
-                client.put(user)
-                client.put(table)
-                if table['O'] is None and table['X'] is None:
-                    client.delete(table_key)
-                    await manager.broadcast_tables(True)
-                await websocket.send_json({'type': 'accept_leave_table'})
-
-                if opponent_id:
-                    try:
-                        await manager.send_user_json(opponent_id, {'type': 'opponent_forfeit'})
-                    except UserNotConnected:
-                        opp_key = client.key(constants.users, user_id)
-                        if client.get(key=user_key):
-                            client.delete(opp_key)
-                        client.delete(table_key)
-                        print(f'table id {table.key.id} removed')
-                        pass
+                await leave_table(websocket, manager, data)
 
     except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedOK):
         if user_id:
             manager.remove_user(user_id)
-            user_key = client.key(constants.users, user_id)
-            user = client.get(key=user_key)
-
-            if user:
-                if user['table']:
-                    table_key = client.key(constants.tables, user['table'])
-                    table = client.get(key=table_key)
-                    if table:
-                        if user.key.id == table['X']:
-                            table['X'] = None
-                            table['X_username'] = ''
-                        if user.key.id == table['O']:
-                            table['O'] = None
-                            table['O_username'] = ''
-                        if table['O'] is None and table['X'] is None:
-                            client.delete(table_key)
-                            print(f'table id {table.key.id} removed')
-                        else:
-                            table['open'] = True
-                            client.put(table)
-                client.delete(user_key)
-                print(f'user id {user_id} removed')
-
-
-# @app.websocket("/ws/{user_id}")
-# async def websocket_endpoint(websocket: WebSocket, username: str):
-#     """Attempt websocket connection by user"""
-#     username = username.strip()
-#     if not re.match(r"^[a-zA-Z0-9 ]*$", username):
-#         return json.dumps({'error': f'Username {username} is invalid'}), 400
-#     query = client.query(kind=constants.users)
-#     query.add_filter("username", "=", username)
-#     if query.fetch():
-#         return json.dumps({'error': f'Username {username} already in use'}), 403
-#
-#     user = datastore.entity.Entity(key=client.key(constants.users))
-#     user.update({'username': username})
-#     client.put(user)
-#
-#     await manager.connect(websocket)
-#     try:
-#         while True:
-#             data = await websocket.receive_json() #json
-#             print(data)
-#             if data['type'] == 'ping':
-#                 print(f'User {username} pinged.')
-#                 await manager.send_message('ping', websocket)
-#             # await manager.send_personal_message(f"You wrote: {data}", websocket)
-#             # await manager.broadcast(f"Client #{username} says: {data}")
-#     except WebSocketDisconnect:
-#         manager.disconnect(websocket)
-#         client.delete(key=user.key)
-#         # await manager.broadcast(f"Client #{username} left the chat")
-
+            db_delete_user(user_id)
 
 
 

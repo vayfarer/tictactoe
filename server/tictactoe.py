@@ -1,12 +1,13 @@
+# Michael Chen
+# tic tac toe game logic
 
 import random
-
-
 # game_state string definition:
 # "012345678":
 # 012
 # 345
 # 678
+
 
 def win_condition(player: str, game_state: str) -> bool:
     """
@@ -53,7 +54,7 @@ def move_win(pieces: set, move: int) -> bool:
     # check rows and columns
     row = (move // 3) * 3
     column = move % 3
-    winning_set = {row + move, row + (move+1) % 3, row + (move+2) % 3}
+    winning_set = {row, row + 1, row + 2}
     if (pieces | move_set).issuperset(winning_set):
         return True
     winning_set = {0 + column, 3 + column, 6 + column}
@@ -79,7 +80,7 @@ def two_move_win(two_move_available: set, pieces: set, move: int) -> bool:
     # check rows and columns
     row = (move // 3) * 3
     column = move % 3
-    winning_set = {row + move, row + (move+1) % 3, row + (move+2) % 3}
+    winning_set = {row, row + 1, row + 2}
     if (two_move_pieces | move_set).issuperset(winning_set):
         win_states += 1
     winning_set = {0 + column, 3 + column, 6 + column}
@@ -91,7 +92,6 @@ def two_move_win(two_move_available: set, pieces: set, move: int) -> bool:
 
 def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
     """
-    Hard AI. Slightly suboptimal, randomness introduced for interest.
     :param ai_player: "X" or "O"
     :param opp_move: int representing opponent's last move.
     :return: returns an int representing the next move by AI as position in
@@ -128,7 +128,7 @@ def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
         if 4 in available:
             return 4
         # return a random corner if not available
-        return random.sample(list(available.intersection({0, 2, 6, 8})), 1)
+        return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
 
     if len(available) == 7:
         # X 2nd turn
@@ -139,13 +139,13 @@ def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
         # or O placed center, forced victory impossible. Opposite corner slightly
         # more optimal, but not necessary.
         if opp_move % 2 == 1 or opp_move == 4:
-            return random.sample(list(available.intersection({0, 2, 6, 8})), 1)
+            return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
         # else if 0's move was even, ie. a corner, forced win is impossible.
         # pick some random square.
-        return random.sample(list(available), 1)
+        return random.sample(list(available), 1)[0]
 
     if len(available) <= 6:
-        # X second turn or later
+        # O second turn or later
 
         # win if possible
         for i in available:
@@ -170,7 +170,7 @@ def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
                 return i
 
         # random move
-        return random.sample(list(available), 1)
+        return random.sample(list(available), 1)[0]
 
 
 def easy_ai(ai_player: str, opp_move: int, game_state: str) -> int:
@@ -199,29 +199,24 @@ def easy_ai(ai_player: str, opp_move: int, game_state: str) -> int:
             else:
                 op_pieces.add(i)
 
-    if len(available) == 9 and random.randint(0, 4) > 1:
-        # return center or corner for first move, most of the time.
-        return random.sample(list(available.intersection({0, 2, 4, 6, 8})), 1)
+    # win if possible
+    for i in available:
+        if move_win(ai_pieces, i):
+            return i
 
-    if len(available) <= 6:
-        # win if possible
-        for i in available:
-            if move_win(ai_pieces, i):
-                return i
+    # block opponent win
+    for i in available:
+        if move_win(op_pieces, i):
+            return i
 
-        # block opponent win
-        for i in available:
-            if move_win(op_pieces, i):
-                return i
-
-        # set up 2 move win
-        for i in available:
-            second_moves = (available - {i})
-            if two_move_win(second_moves, ai_pieces, i):
-                return i
+    # set up 2 move win
+    for i in available:
+        second_moves = (available - {i})
+        if two_move_win(second_moves, ai_pieces, i):
+            return i
 
     # random move
-    return random.sample(list(available), 1)
+    return random.sample(list(available), 1)[0]
 
 
 
