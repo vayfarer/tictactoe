@@ -32,10 +32,12 @@ class UsernameManager():
 
         while len(self._q) < 10:
             try:
+                print("Requesting username from microservice: GET " + url)
                 response = requests.get(url, timeout=5)
                 response.raise_for_status()
                 async with self._q_lock:
                     self._q.append(response.json()['username'].strip())
+                    print("Response received: " + response.json()['username'])
             except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
                 print("username service error:", error)
                 print("Trying again in 10 seconds")
