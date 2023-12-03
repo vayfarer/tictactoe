@@ -69,7 +69,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 usernames = UsernameManager()
-usernames.q_usernames()
 
 
 @app.get("/")

@@ -26,14 +26,26 @@ class UsernameManager():
         """Maintains a cached queue of 10 usernames."""
         self._q_lock = Lock()
         self._q = deque()
+        self._url = "http://cs361-microservice-404417.wl.r.appspot.com/"
+        while len(self._q) < 10:
+            try:
+                print("Requesting username from microservice: GET " + self._url)
+                response = requests.get(self._url, timeout=5)
+                response.raise_for_status()
+                async with self._q_lock:
+                    self._q.append(response.json()['username'].strip())
+                    print("Response received: " + response.json()['username'])
+            except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
+                print("username service error:", error)
+                print("Trying again in 10 seconds")
+                time.sleep(10)
 
     async def q_usernames(self):
-        url = "http://cs361-microservice-404417.wl.r.appspot.com/"
 
         while len(self._q) < 10:
             try:
-                print("Requesting username from microservice: GET " + url)
-                response = requests.get(url, timeout=5)
+                print("Requesting username from microservice: GET " + self._url)
+                response = requests.get(self._url, timeout=5)
                 response.raise_for_status()
                 async with self._q_lock:
                     self._q.append(response.json()['username'].strip())
