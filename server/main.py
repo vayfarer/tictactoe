@@ -106,7 +106,7 @@ async def websocket_login(websocket: WebSocket):
             # Login
             elif data['type'] == 'login':
                 user_id = await usernames.get_username(websocket, manager)
-                await usernames.q_usernames()
+                usernames.q_usernames()
             # logout
             elif data['type'] == 'logout':
                 if user_id:
