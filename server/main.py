@@ -24,16 +24,24 @@ class UserNotConnected(Exception):
 class ConnectionManager:
     def __init__(self):
         self._active_users = dict()
+        self._active_usernames = set()
         self._broadcast_time = time.time()
 
-    def add_user(self, user_id: int, websocket: WebSocket):
-        self._active_users[user_id] = {'websocket': websocket, 'in_game': False}
+    def username_available(self, username):
+        if username in self._active_usernames:
+            return False
+        return True
+
+    def add_user(self, user_id: int, username:int, websocket: WebSocket):
+        self._active_users[user_id] = {'websocket': websocket, 'in_game': False, 'username': username}
+        self._active_usernames.add(username)
 
     def user_in_game(self, user_id, in_game: bool):
         self._active_users[user_id]['in_game'] = in_game
 
     def remove_user(self, user_id: int):
         if user_id in self._active_users:
+            self._active_usernames.remove(self._active_users[user_id]['username'])
             self._active_users.pop(user_id)
 
     async def send_user_json(self, user_id, data):

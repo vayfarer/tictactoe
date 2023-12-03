@@ -51,6 +51,7 @@ class UsernameManager():
             try:
                 username = self._q.get_nowait()
             except asyncio.QueueEmpty:
+                print("Username queue empty.")
                 try:
                     response = requests.get(self._url, timeout=5)
                     response.raise_for_status()
@@ -60,22 +61,16 @@ class UsernameManager():
                         'type': 'error',
                         'error': f'Get username microservice error: {error}'})
                     return
+            has_username = manager.username_available(username)
 
-            query = client.query(kind=constants.users)
-            query.add_filter('username', '=', username)
-            results = list(query.fetch())
-            if not results:
-                has_username = True
-
-        if has_username and username:
-            user = datastore.entity.Entity(key=client.key(constants.users))
-            user.update({'username': username, 'table': None})
-            client.put(user)
-            user_id = user.key.id
-            manager.add_user(user_id, websocket)
-            print(f'user_id {user_id} created')
-            await websocket.send_json({'type': 'accept_user', 'username': username, 'user_id': user_id})
-            return user_id
+        user = datastore.entity.Entity(key=client.key(constants.users))
+        user.update({'username': username, 'table': None})
+        client.put(user)
+        user_id = user.key.id
+        manager.add_user(user_id, username, websocket)
+        print(f'user_id {user_id} created')
+        await websocket.send_json({'type': 'accept_user', 'username': username, 'user_id': user_id})
+        return user_id
 
 
 def db_delete_user(user_id):
