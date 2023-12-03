@@ -4,6 +4,9 @@
 from google.cloud import datastore
 import requests
 import constants
+import time
+from collections import deque
+from asyncio import Lock
 from tictactoe import win_condition, draw_condition, hard_ai, easy_ai
 
 
@@ -18,43 +21,60 @@ class UserNotConnected(Exception):
     pass
 
 
-async def get_username(websocket, manager):
-    """GET Request to username microservice."""
+class UsernameManager():
+    def __init__(self):
+        """Maintains a cached queue of 10 usernames."""
+        self._q_lock = Lock()
+        self._q = deque()
 
-    url = "http://cs361-microservice-404417.wl.r.appspot.com/"
-    has_username = False
-    username = None
-    while not has_username:
-        try:
-            response = requests.get(url, timeout=5)
-            response.raise_for_status()
-        except requests.ConnectionError as error:
-            await websocket.send_json({
-                'type': 'error',
-                'error': f'Get username microservice error: {error}'})
-            return
-        except requests.exceptions.HTTPError as error:
-            await websocket.send_json({
-                'type': 'error',
-                'error': f'Get username microservice error: {error}'})
-            return
-        username = response.json()['username'].strip()
+    async def q_usernames(self):
+        url = "http://cs361-microservice-404417.wl.r.appspot.com/"
 
-        query = client.query(kind=constants.users)
-        query.add_filter('username', '=', username)
-        results = list(query.fetch())
-        if not results:
-            has_username = True
+        while len(self._q) < 10:
+            try:
+                response = requests.get(url, timeout=5)
+                response.raise_for_status()
+                async with self._q_lock:
+                    self._q.append(response.json()['username'].strip())
+            except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
+                print("username service error:", error)
+                print("Trying again in 10 seconds")
+                time.sleep(10)
 
-    if has_username and username:
-        user = datastore.entity.Entity(key=client.key(constants.users))
-        user.update({'username': username, 'table': None})
-        client.put(user)
-        user_id = user.key.id
-        manager.add_user(user_id, websocket)
-        print(f'user_id {user_id} created')
-        await websocket.send_json({'type': 'accept_user', 'username': username, 'user_id': user_id})
-        return user_id
+    async def get_username(self, websocket, manager):
+        """GET Request to username microservice."""
+
+        url = "http://cs361-microservice-404417.wl.r.appspot.com/"
+        has_username = False
+        username = None
+
+        while not has_username:
+            try:
+                async with self._q_lock:
+                    username = self._q.popleft()
+            except IndexError:
+                try:
+                    response = requests.get(url, timeout=5)
+                    response.raise_for_status()
+                    username = response.json()['username'].strip()
+                except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
+                    print("username service error:", error)
+
+            query = client.query(kind=constants.users)
+            query.add_filter('username', '=', username)
+            results = list(query.fetch())
+            if not results:
+                has_username = True
+
+        if has_username and username:
+            user = datastore.entity.Entity(key=client.key(constants.users))
+            user.update({'username': username, 'table': None})
+            client.put(user)
+            user_id = user.key.id
+            manager.add_user(user_id, websocket)
+            print(f'user_id {user_id} created')
+            await websocket.send_json({'type': 'accept_user', 'username': username, 'user_id': user_id})
+            return user_id
 
 
 def db_delete_user(user_id):

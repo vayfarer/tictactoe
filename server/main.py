@@ -10,7 +10,7 @@ import constants
 import time
 from tictactoe import win_condition, draw_condition, hard_ai, easy_ai
 from db import (db_delete_user, db_get_tables, db_make_table, db_join_table,
-                db_get_table, db_game_turn, get_username, leave_table,
+                db_get_table, db_game_turn, UsernameManager, leave_table,
                 db_rematch_table)
 
 client = datastore.Client()
@@ -68,6 +68,8 @@ class ConnectionManager:
 
 
 manager = ConnectionManager()
+usernames = UsernameManager()
+usernames.q_usernames()
 
 
 @app.get("/")
@@ -103,7 +105,8 @@ async def websocket_login(websocket: WebSocket):
 
             # Login
             elif data['type'] == 'login':
-                user_id = await get_username(websocket, manager)
+                user_id = await usernames.get_username(websocket, manager)
+                await usernames.q_usernames()
             # logout
             elif data['type'] == 'logout':
                 if user_id:
