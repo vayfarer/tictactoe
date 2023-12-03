@@ -8,7 +8,7 @@ from google.cloud import datastore
 import json
 import constants
 import time
-from tictactoe import win_condition, draw_condition, hard_ai, easy_ai
+import asyncio
 from db import (db_delete_user, db_get_tables, db_make_table, db_join_table,
                 db_get_table, db_game_turn, UsernameManager, leave_table,
                 db_rematch_table)
@@ -69,6 +69,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 usernames = UsernameManager()
+usernames.q_usernames()
 
 
 @app.get("/")

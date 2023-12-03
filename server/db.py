@@ -25,20 +25,17 @@ class UsernameManager():
     def __init__(self):
         """Maintains a cached queue of 10 usernames."""
         self._q_lock = asyncio.Lock()
-        self._q = deque()
+        self._q = asyncio.Queue(maxsize=10)
         self._url = "http://cs361-microservice-404417.wl.r.appspot.com/"
-        asyncio.run(self.q_usernames())
 
-    async def q_usernames(self):
-
-        while len(self._q) < 10:
+    def q_usernames(self):
+        while not self._q.full():
             try:
                 print("Requesting username from microservice: GET " + self._url)
                 response = requests.get(self._url, timeout=5)
                 response.raise_for_status()
-                async with self._q_lock:
-                    self._q.append(response.json()['username'].strip())
-                    print("Response received: " + response.json()['username'])
+                self._q.put_nowait(response.json()['username'].strip())
+                print("Response received: " + response.json()['username'])
             except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
                 print("username service error:", error)
                 print("Trying again in 10 seconds")
@@ -47,21 +44,22 @@ class UsernameManager():
     async def get_username(self, websocket, manager):
         """GET Request to username microservice."""
 
-        url = "http://cs361-microservice-404417.wl.r.appspot.com/"
         has_username = False
         username = None
 
         while not has_username:
             try:
-                async with self._q_lock:
-                    username = self._q.popleft()
-            except IndexError:
+                username = self._q.get_nowait()
+            except asyncio.QueueEmpty:
                 try:
-                    response = requests.get(url, timeout=5)
+                    response = requests.get(self._url, timeout=5)
                     response.raise_for_status()
                     username = response.json()['username'].strip()
                 except (requests.ConnectionError, requests.exceptions.HTTPError) as error:
-                    print("username service error:", error)
+                    await websocket.send_json({
+                        'type': 'error',
+                        'error': f'Get username microservice error: {error}'})
+                    return
 
             query = client.query(kind=constants.users)
             query.add_filter('username', '=', username)
