@@ -35,6 +35,9 @@ export const Login = ( {sendJsonMessage} ) => {
             subheader={<ListSubheader>Updates and new features</ListSubheader>}
             >
                 <ListItem>
+                <ListItemText primary="Implemented rematching. Updated UI with Material-UI. Implemented Play Now vs (easy) AI." secondary="12/03/2023" />
+                </ListItem>
+                <ListItem>
                 <ListItemText primary="Added easy and hard AI" secondary="11/27/2023" />
                 </ListItem>
                 <ListItem>
