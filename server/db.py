@@ -5,7 +5,7 @@ from google.cloud import datastore
 import requests
 import constants
 import time
-from collections import deque
+import datetime
 import asyncio
 from tictactoe import win_condition, draw_condition, hard_ai, easy_ai
 
@@ -31,7 +31,8 @@ class UsernameManager():
     def q_usernames(self):
         while not self._q.full():
             try:
-                print("Requesting username from microservice: GET " + self._url)
+                print(datetime.datetime.now(tz=datetime.timezone.utc),
+                      "- Requesting username from microservice: GET " + self._url)
                 response = requests.get(self._url, timeout=5)
                 response.raise_for_status()
                 self._q.put_nowait(response.json()['username'].strip())
