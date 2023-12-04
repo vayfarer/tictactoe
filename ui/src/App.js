@@ -136,7 +136,7 @@ function App() {
 
   <Container maxWidth="sm">
 
-  <CssBaseline />
+  {/* <CssBaseline /> */}
     <Grid container>
       <Grid item xs={8}>
         <h1>Tic Tac Toe!</h1>

@@ -37,22 +37,6 @@
   }
 }
 
-
-.entity{
-  border-collapse: collapse;
-  margin:auto
-}
-
-.entity th, .entity td{
-  padding: 3px 5px;
-  border: 1px solid black;
-}
-
-.entity th {
-  background-color: lightgray;
-}
-
-
 .board {
   margin: 0 auto;
   box-shadow: 1px 1px 1px 1px #000503;
@@ -69,6 +53,7 @@
   width: 2em;
   height: 2em;
   margin: 0 auto;
+  text-align: center;
   font-size: 2em;
 }
 

@@ -19,7 +19,7 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
     }
 
     function move(square){
-        if (turn && !gameOver && !oppForfeit){
+        if (turn && !gameOver && !oppForfeit && gameState[square] ===" "){
             // setTurn(false);
             sendJsonMessage({'type': 'turn', 'user_id': userId, 'table_id': tableId, 'square':square})
         }
