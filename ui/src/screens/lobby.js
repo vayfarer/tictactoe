@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
+import { Stack, Box, Button, Grid} from '@mui/material';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+
+
 export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable, sendJsonMessage, tablesList} ) => {
 
     function logout() {
@@ -27,18 +37,28 @@ export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable,
 
     return (
         <>
-            <p>
+            <Box>
             Logged in as <b>{username}</b> <br/>
-            </p>
-            <p>
-            <button title='Join a game immediately! (not implemented)' onClick={joinRandom}><b>Play Now!</b></button>&nbsp;
-            <button title='Make a game table' onClick={makeTable}>Make a table</button>&nbsp;
-            <button title='Leave tic tac toe lobby.' onClick={logout}>Back</button>
-            </p>
-            <div className='App'><LobbyList tablesList={tablesList} joinTable={joinTable} /></div>
+            </Box>
+            <Stack direction={'column'} spacing={2}>
+                <Grid container spacing={2} direction="row">
+                    <Grid item xs>
+                    <Button fullWidth variant='contained' title='Join a game immediately! (not implemented)' onClick={joinRandom}><b>Play Now!</b></Button>
+                    </Grid>
+                    <Grid item xs>
+                    <Button fullWidth variant='outlined' title='Make a game table' onClick={makeTable}>Make a table</Button>
+                    </Grid>
+                    <Grid item xs>
+                    <Button fullWidth variant='outlined' title='Leave tic tac toe lobby.' onClick={logout}>Back</Button>
+                    </Grid>
+                </Grid>
 
-            <button title='Refresh the list of game tables.' onClick={getAllTables}>Refresh</button>
+                <Box>
+                    <LobbyList tablesList={tablesList} joinTable={joinTable} />
+                </Box>
 
+            <Button variant='outlined' title='Refresh the list of game tables.' onClick={getAllTables}>Refresh</Button>
+            </Stack>
 
         </>
     );
@@ -46,19 +66,23 @@ export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable,
 
 const LobbyList = ({tablesList, joinTable}) => {
     return (
-        <table className="entity">
-            <thead>
-                <tr>
-                    <th>Table</th>
-                    <th>Player X</th>
-                    <th>Player O</th>
-                </tr>
-            </thead>
-            <tbody>
-                {tablesList.map((tableRow, i) => <LobbyRow tableRow={tableRow}
-                    key={i} joinTable={joinTable} />)}
-            </tbody>
-        </table>
+        <>
+        <TableContainer component={Paper}>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell align='left'>Table</TableCell>
+                        <TableCell align='right'>Player X</TableCell>
+                        <TableCell align='right'>Player O</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {tablesList.length ? tablesList.map((tableRow, i) => <LobbyRow tableRow={tableRow}
+                    key={i} joinTable={joinTable} />) : <><TableRow><TableCell colSpan={3}>No games available to join! Why don't you make one?</TableCell></TableRow></>}
+                </TableBody>
+            </Table>
+        </TableContainer>
+        </>
     );
 }
 
@@ -66,11 +90,11 @@ const LobbyList = ({tablesList, joinTable}) => {
 const LobbyRow = ({ tableRow, joinTable }) => {
 
     return (
-        <tr>
-            <td>{tableRow.table_id}</td>
-            <td>{(tableRow.X_username !== "") ? tableRow.X_username : <button onClick={()=>joinTable('X', tableRow.table_id)} title='Join game as Player X'>Join</button>}</td>
-            <td>{(tableRow.O_username !== "") ? tableRow.O_username : <button onClick={()=>joinTable('O', tableRow.table_id)} title='Join game as Player O'>Join</button>}</td>
-        </tr>
+        <TableRow>
+            <TableCell>{tableRow.table_id}</TableCell>
+            <TableCell align='right'>{(tableRow.X_username !== "") ? tableRow.X_username : <Button onClick={()=>joinTable('X', tableRow.table_id)} title='Join game as Player X'>Join</Button>}</TableCell>
+            <TableCell align='right'>{(tableRow.O_username !== "") ? tableRow.O_username : <Button onClick={()=>joinTable('O', tableRow.table_id)} title='Join game as Player O'>Join</Button>}</TableCell>
+        </TableRow>
     );
 }
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Stack, Box, Button, Grid} from '@mui/material';
 
 export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn,
     winner, gameOver, oppForfeit } ) => {
@@ -10,6 +11,14 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
         else if (window.confirm('Are you sure? Leaving the table will forfeit the game')) {
             sendJsonMessage({'type': 'leave_table', 'user_id': userId, 'table_id': tableId})
         } 
+    }
+
+    
+    const [rematchButton, setRematchButton] = useState('Request Rematch');  
+
+    function requestRematch(){
+        sendJsonMessage({'type': 'rematch', 'user_id': userId, 'table_id': tableId})
+        setRematchButton('Rematch Requested')
     }
 
     function move(square){
@@ -24,20 +33,16 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
 
     return (
         <>
-        <p>
+        <Stack direction={'column'} spacing={2}>
+        <Box>
             Logged in as <b>{username}</b> <br/>
             {!gameOver && <>You are player <b>{gameState[9]}</b>. It is {!turn &&<>not</>} your turn.<br/>
             {opponent===""? <>Waiting for opponent to join.</> : <>Your opponent is {opponent}</>}<br/></>}
             {!gameOver && oppForfeit && <>{opponent} has left the game and forfeited.<br/> </>}
             {gameOver && (winner===''? <><b>Game over in draw!</b></>:<><b>Game over!<br/> {winner} is victorious!</b></>)}
-        </p>
+        </Box>
         
-        <p>
-            <button title='Leave tic tac toe game.' onClick={leave_table}>Back</button>
-        </p>
-
-
-        <div className="board-area">
+        <Box>
             <table className="board">
             <tbody>
             <tr>
@@ -57,9 +62,17 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
             </tr>
             </tbody>
             </table>
-        </div>
+        </Box>
+        <Grid container>{ gameOver && <>
+            <Grid item xs>
+            <Button variant='outlined' fullWidth title='Request Rematch.' onClick={requestRematch}>{rematchButton}</Button>
+            </Grid></>}
+            <Grid item xs>
+            <Button fullWidth title='Leave tic tac toe game.' onClick={leave_table}>Back</Button>
+            </Grid>
+        </Grid>
+        </Stack>
 
-        <p></p>
         </>
     );
 }

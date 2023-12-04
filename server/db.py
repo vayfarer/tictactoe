@@ -73,7 +73,7 @@ class UsernameManager():
         return user_id
 
 
-def db_delete_user(user_id):
+async def db_delete_user(user_id, manager):
     """Also deletes their present from any related tables."""
     user_key = client.key(constants.users, user_id)
     user = client.get(key=user_key)
@@ -94,6 +94,7 @@ def db_delete_user(user_id):
                 else:
                     table['open'] = True
                     client.put(table)
+                await manager.broadcast_tables(True)
         client.delete(user_key)
         print(f'user id {user_id} removed')
 
@@ -116,18 +117,19 @@ async def db_make_table(websocket, manager, data):
         await websocket.send_json({'type': 'error', 'error': 'user does not exist'})
     else:
         table = datastore.entity.Entity(key=client.key(constants.tables))
-        table.update({'turn': 'X', 'game_state': "         "})
+        table.update({'turn': 'X', 'game_state': "         ", 'X_rematch': False,
+                      'O_rematch': False})
         if data['X'] == "player":
-            table.update({'X': user.key.id, 'X_username': user['username'], 'X_rematch': False})
+            table.update({'X': user.key.id, 'X_username': user['username']})
             if data['O'] == 'vacant':
                 table.update({'open': True, 'O': None, 'O_username': ''})
-            elif data['O'] == 'easy_ai' or data['O'] ==  'hard_ai':
+            elif data['O'] == 'easy_ai' or data['O'] == 'hard_ai':
                 table.update({'open': False, 'O': None, 'O_username': data['O']})
             else:
                 await websocket.send_json({'type': 'error', 'error': 'Invalid opponent'})
                 return
         else:
-            table.update({'O': user.key.id, 'O_username': user['username'], 'O_rematch': False})
+            table.update({'O': user.key.id, 'O_username': user['username']})
             if data['X'] == 'vacant':
                 table.update({'open': True, 'X': None, 'X_username': ''})
             elif data['X'] == 'easy_ai' or data['X'] == 'hard_ai':
@@ -137,12 +139,14 @@ async def db_make_table(websocket, manager, data):
                 return
 
         if table:
+            print(table)
             client.put(table)
             table_id = table.key.id
             user.update({'table': table_id})
             client.put(user)
             manager.user_in_game(user.key.id, True)
             await websocket.send_json({'type': 'accept_table', 'table_id': table_id})
+            await manager.broadcast_tables(False)
         else:
             await websocket.send_json({'type': 'accept_table_ai'})
 
@@ -294,7 +298,6 @@ async def db_game_turn(websocket, manager, data):
             table['turn'] = next_turn
             client.put(table)
 
-
         await websocket.send_json({'type': 'game_state', 'opponent': opponent,
                                    'game_state': table['game_state'] + player + next_turn,
                                    'game_over': game_over, 'winner': winner})
@@ -327,7 +330,7 @@ async def leave_table(websocket, manager, data):
         # table is empty
         client.delete(table_key)
         print(f'table id {table.key.id} removed')
-        await manager.broadcast_tables(False)
+        await manager.broadcast_tables(True)
     await websocket.send_json({'type': 'accept_leave_table'})
 
     if opponent_id:
@@ -355,10 +358,12 @@ async def db_rematch_table(websocket, manager, data):
         player = 'X'
         opponent = 'O'
         opponent_id = table['O']
+        opponent_user = table['O_username']
     elif user.key.id == table['O']:
         player = 'O'
         opponent = 'X'
         opponent_id = table['X']
+        opponent_user = table['X_username']
     else:
         await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
         return
@@ -368,12 +373,12 @@ async def db_rematch_table(websocket, manager, data):
         await websocket.send_json({'type': 'error', 'error': 'game is not over yet.'})
         return
 
-    if table[opponent+'_rematch']:
+    if table[opponent+'_rematch'] or opponent_user[4:] == '_ai':
         # other player already requested rematch
         table.update({'game_state': "         ", 'turn': 'X', 'X_rematch': False, 'O_rematch': False})
         # swap player positions for rematch.
-        table['X'], table['X_username'], table['O'], table['O_username'], player \
-            = table['O'], table['O_username'], table['X'], table['X_username'], opponent
+        table['X'], table['X_username'], table['O'], table['O_username'], player, opponent\
+            = table['O'], table['O_username'], table['X'], table['X_username'], opponent, player
         client.put(table)
         if opponent_id:
             try:
@@ -386,8 +391,8 @@ async def db_rematch_table(websocket, manager, data):
                     client.delete(opp_key)
                 await websocket.send_json({'type': 'error_rematch', 'error': 'rematch opponent not connected'})
 
+    table.update({player+'_rematch': True})
     if opponent_id:
-        table.update({player+'_rematch': True})
         client.put(table)
         try:
             await manager.send_user_json(opponent_id, {'type': 'request_rematch'})
@@ -399,8 +404,8 @@ async def db_rematch_table(websocket, manager, data):
                 client.delete(opp_key)
             await websocket.send_json({'type': 'error_rematch', 'error': 'rematch opponent not connected'})
 
-    table['X'], table['X_username'], table['O'], table['O_username'], player \
-        = table['O'], table['O_username'], table['X'], table['X_username'], opponent
+    table['X'], table['X_username'], table['O'], table['O_username'], player, opponent \
+        = table['O'], table['O_username'], table['X'], table['X_username'], opponent, player
     table.update({opponent: None, opponent+'_username': '', 'turn': 'X', 'open': True})
     client.put(table)
     await websocket.send_json({'type': 'accept_table', 'table_id': table.key.id})

@@ -3,6 +3,10 @@ import './App.css';
 import React, { useEffect, useState } from 'react';
 import useWebSocket, { ReadyState } from "react-use-websocket"
 
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import { CssBaseline } from '@mui/material';
+
 import Login from './screens/login';
 import Lobby from './screens/lobby';
 import Game from './screens/game';
@@ -25,8 +29,8 @@ function App() {
   const [oppForfeit, setOppForfeit] = useState(false);
 
 
-  const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
-  // const WS_URL = `ws://127.0.0.1:8000/ws`
+  // const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
+  const WS_URL = `ws://127.0.0.1:8000/ws`
   const [socketUrl, setSocketUrl] = useState(WS_URL);
 
 
@@ -86,6 +90,9 @@ function App() {
       else if (lastJsonMessage && lastJsonMessage.type === 'opponent_forfeit'){
         setOppForfeit(true);
       }
+      else if (lastJsonMessage && lastJsonMessage.type === 'accept_rematch'){
+        sendJsonMessage({'type':'get_table', 'user_id':userId, 'table_id':tableId})
+      }
       else{
       }
     }
@@ -97,7 +104,11 @@ function App() {
 
   return (
     <>
-    <div className='App'>
+
+  <Container maxWidth="sm">
+
+  <CssBaseline />
+    <Box>
       <header>
         <h1>Tic Tac Toe!</h1>
       </header>
@@ -114,11 +125,14 @@ function App() {
      />}
 
     {makingTable === true && <MakeTable sendJsonMessage={sendJsonMessage} userId={userId} setMakingTable={setMakingTable} />}
+    </Box>
+
 
       <br/>
       <footer>CS 361 project by Michael Chen</footer>
-    </div>
     
+
+    </Container>
     </>
   );
 }

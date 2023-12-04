@@ -68,11 +68,13 @@ class ConnectionManager:
             await broadcast()
             self._broadcast_time = time.time()
         elif wait:
-            time.sleep(0.1)
-            # check if broadcast has occurred while waiting.
-            if time.time() - self._broadcast_time > 0.1:
-                await broadcast()
-                self._broadcast_time = time.time()
+            for i in range(5):
+                time.sleep(0.5)
+                # check if broadcast has occurred while waiting.
+                if time.time() - self._broadcast_time > 0.1:
+                    await broadcast()
+                    self._broadcast_time = time.time()
+                    break
 
 
 manager = ConnectionManager()
@@ -119,7 +121,7 @@ async def websocket_login(websocket: WebSocket):
             elif data['type'] == 'logout':
                 if user_id:
                     manager.remove_user(user_id)
-                    db_delete_user(user_id)
+                    await db_delete_user(user_id, manager)
 
             # get all tables
             elif data['type'] == 'get_all_tables':
@@ -153,7 +155,7 @@ async def websocket_login(websocket: WebSocket):
     except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedOK):
         if user_id:
             manager.remove_user(user_id)
-            db_delete_user(user_id)
+            await db_delete_user(user_id, manager)
 
 
 
