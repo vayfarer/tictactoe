@@ -18,7 +18,7 @@ export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable,
         setUsername('');
     }
 
-    function joinRandom() {
+    function playAI() {
 
     }
 
@@ -43,7 +43,7 @@ export const Lobby = ( {setLogin, username, setUsername, userId, setMakingTable,
             <Stack direction={'column'} spacing={2}>
                 <Grid container spacing={2} direction="row">
                     <Grid item xs>
-                    <Button fullWidth variant='contained' title='Join a game immediately! (not implemented)' onClick={joinRandom}><b>Play Now!</b></Button>
+                    <Button fullWidth variant='contained' title='Play against AI immediately' onClick={playAI}><b>Play Now vs AI</b></Button>
                     </Grid>
                     <Grid item xs>
                     <Button fullWidth variant='outlined' title='Make a game table' onClick={makeTable}>Make a table</Button>

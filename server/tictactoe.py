@@ -90,10 +90,9 @@ def two_move_win(two_move_available: set, pieces: set, move: int) -> bool:
         return True if win_states > 1 else False
 
 
-def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
+def hard_ai(ai_player: str, game_state: str) -> int:
     """
     :param ai_player: "X" or "O"
-    :param opp_move: int representing opponent's last move.
     :return: returns an int representing the next move by AI as position in
     game_state string.
     """
@@ -138,7 +137,7 @@ def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
         # else if O's move was odd, ie. not corner, return a corner, force a win.
         # or O placed center, forced victory impossible. Opposite corner slightly
         # more optimal, but not necessary.
-        if opp_move % 2 == 1 or opp_move == 4:
+        if op_pieces.pop() % 2 == 1 or op_pieces.pop() == 4:
             return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
         # else if 0's move was even, ie. a corner, forced win is impossible.
         # pick some random square.
@@ -173,7 +172,7 @@ def hard_ai(ai_player: str, opp_move: int, game_state: str) -> int:
         return random.sample(list(available), 1)[0]
 
 
-def easy_ai(ai_player: str, opp_move: int, game_state: str) -> int:
+def easy_ai(ai_player: str, game_state: str) -> int:
     """
     Most of the time picks center or corner first move.
     Always wins and blocks in one move if possible.

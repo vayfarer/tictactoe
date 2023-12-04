@@ -74,7 +74,7 @@ class UsernameManager():
 
 
 async def db_delete_user(user_id, manager):
-    """Also deletes their present from any related tables."""
+    """Also deletes their presence from any related tables."""
     user_key = client.key(constants.users, user_id)
     user = client.get(key=user_key)
     if user:
@@ -139,7 +139,6 @@ async def db_make_table(websocket, manager, data):
                 return
 
         if table:
-            print(table)
             client.put(table)
             table_id = table.key.id
             user.update({'table': table_id})
@@ -179,7 +178,7 @@ async def db_join_table(websocket, manager, data):
                 opponent_id,
                 {'type': 'game_state',
                  'opponent': user['username'], # you are your opponent's opponent.
-                 'game_state': table['game_state'] + table['turn'] + next_turn})
+                 'game_state': table['game_state'] + table['turn'] + opp_as})
         except UserNotConnected:
             opp_key = client.key(constants.users, user.key.id)
             if client.get(key=opp_key):
@@ -212,6 +211,50 @@ async def db_get_table(websocket, data):
     game = table['game_state'] + player + table['turn']
     await websocket.send_json({'type': 'game_state', 'opponent': opponent, 'game_state': game,
                                'game_over': False, 'winner': ''})
+
+
+async def db_req_ai_turn(websocket, data):
+    """User requests ai first turn."""
+    table_key = client.key(constants.tables, data['table_id'])
+    table = client.get(key=table_key)
+    user_key = client.key(constants.users, data['user_id'])
+    user = client.get(key=user_key)
+    if not user or not table:
+        await websocket.send_json({'type': 'error', 'error': 'user or table does not exist'})
+        return
+    elif user.key.id == table['X']:
+        player = 'X'
+        next_turn = 'O'
+        opponent = table['O_username']
+        opponent_id = table['O']
+    elif user.key.id == table['O']:
+        player = 'O'
+        next_turn = 'X'
+        opponent = table['X_username']
+        opponent_id = table['X']
+    else:
+        await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
+        return
+
+    if opponent == 'easy_ai':
+        ai_move = easy_ai(next_turn, table['game_state'])
+    else:
+        ai_move = hard_ai(next_turn, table['game_state'])
+
+    game_state_list = list(table['game_state'])
+    game_state_list[ai_move] = next_turn
+    table['game_state'] = "".join(game_state_list)
+
+    game_over = False
+    winner = ''
+
+    next_turn = player # player's turn again
+    table['turn'] = next_turn
+    client.put(table)
+
+    await websocket.send_json({'type': 'game_state', 'opponent': opponent,
+                               'game_state': table['game_state'] + player + next_turn,
+                               'game_over': game_over, 'winner': winner})
 
 
 async def db_game_turn(websocket, manager, data):
@@ -278,9 +321,9 @@ async def db_game_turn(websocket, manager, data):
 
         elif (opponent == 'easy_ai' or opponent == 'hard_ai') and not game_over:
             if opponent == 'easy_ai':
-                ai_move = easy_ai(next_turn, data['square'], table['game_state'])
+                ai_move = easy_ai(next_turn, table['game_state'])
             else:
-                ai_move = hard_ai(next_turn, data['square'], table['game_state'])
+                ai_move = hard_ai(next_turn, table['game_state'])
 
             game_state_list = list(table['game_state'])
             game_state_list[ai_move] = next_turn
@@ -326,6 +369,7 @@ async def leave_table(websocket, manager, data):
     user['table'] = None
     client.put(user)
     client.put(table)
+    manager.user_in_game(user.key.id, False)
     if table['O'] is None and table['X'] is None:
         # table is empty
         client.delete(table_key)
@@ -368,21 +412,27 @@ async def db_rematch_table(websocket, manager, data):
         await websocket.send_json({'type': 'error', 'error': 'user not at this table'})
         return
 
-    if not (draw_condition(table['game_state']) or win_condition('O',table['game_state'])
+    if not (draw_condition(table['game_state']) or win_condition('O', table['game_state'])
             or win_condition('X', table['game_state'])):
         await websocket.send_json({'type': 'error', 'error': 'game is not over yet.'})
         return
 
     if table[opponent+'_rematch'] or opponent_user[4:] == '_ai':
-        # other player already requested rematch
+        # all players want rematch.
         table.update({'game_state': "         ", 'turn': 'X', 'X_rematch': False, 'O_rematch': False})
         # swap player positions for rematch.
-        table['X'], table['X_username'], table['O'], table['O_username'], player, opponent\
-            = table['O'], table['O_username'], table['X'], table['X_username'], opponent, player
+        table['X'], table['X_username'], table['O'], table['O_username'], \
+            = table['O'], table['O_username'], table['X'], table['X_username'],
         client.put(table)
+
+        if opponent_user[4:] == "_ai":
+            await websocket.send_json({'type': 'accept_rematch'})
+            return
+
         if opponent_id:
             try:
                 await manager.send_user_json(opponent_id, {'type': 'accept_rematch'})
+                await websocket.send_json({'type': 'accept_rematch'})
                 return
             except UserNotConnected:
                 client.delete(table_key)
@@ -404,9 +454,3 @@ async def db_rematch_table(websocket, manager, data):
                 client.delete(opp_key)
             await websocket.send_json({'type': 'error_rematch', 'error': 'rematch opponent not connected'})
 
-    table['X'], table['X_username'], table['O'], table['O_username'], player, opponent \
-        = table['O'], table['O_username'], table['X'], table['X_username'], opponent, player
-    table.update({opponent: None, opponent+'_username': '', 'turn': 'X', 'open': True})
-    client.put(table)
-    await websocket.send_json({'type': 'accept_table', 'table_id': table.key.id})
-    await manager.broadcast_tables(True)

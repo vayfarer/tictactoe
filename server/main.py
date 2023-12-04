@@ -11,7 +11,7 @@ import time
 import asyncio
 from db import (db_delete_user, db_get_tables, db_make_table, db_join_table,
                 db_get_table, db_game_turn, UsernameManager, leave_table,
-                db_rematch_table)
+                db_rematch_table, db_req_ai_turn)
 
 client = datastore.Client()
 app = FastAPI()
@@ -62,7 +62,10 @@ class ConnectionManager:
 
             for user_id in self._active_users:
                 if not self._active_users[user_id]['in_game']:
-                    await self._active_users[user_id]['websocket'].send_json({'type': 'all_tables', 'tables': results})
+                    try:
+                        await self._active_users[user_id]['websocket'].send_json({'type': 'all_tables', 'tables': results})
+                    except RuntimeError:
+                        self.remove_user(user_id)
 
         if time.time() - self._broadcast_time > 0.1:
             await broadcast()
@@ -87,8 +90,7 @@ async def get():
     return HTMLResponse("Hello world!")
 
 
-@app.get("/delete")
-async def get():
+def delete_everything():
     """Convenient function to empty the database during development."""
     query = client.query(kind=constants.tables)
     results1 = list(query.fetch())
@@ -100,6 +102,14 @@ async def get():
         client.delete(e.key)
     return (json.dumps({'deleted_users': results2,
                         'deleted_tables': results1}), 204)
+
+
+delete_everything()
+
+
+@app.get("/delete")
+async def get():
+    return delete_everything()
 
 
 @app.websocket("/ws")
@@ -151,6 +161,9 @@ async def websocket_login(websocket: WebSocket):
             # player leaves a table
             elif data['type'] == 'leave_table':
                 await leave_table(websocket, manager, data)
+
+            elif data['type'] == 'ai_first_move':
+                await db_req_ai_turn(websocket, data)
 
     except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedOK):
         if user_id:

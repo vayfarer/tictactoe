@@ -5,7 +5,8 @@ import useWebSocket, { ReadyState } from "react-use-websocket"
 
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Stack, Grid, Paper} from '@mui/material';
+import { styled } from '@mui/material/styles';
 
 import Login from './screens/login';
 import Lobby from './screens/lobby';
@@ -27,6 +28,7 @@ function App() {
   const [winner, setWinner] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [oppForfeit, setOppForfeit] = useState(false);
+  const [rematchButton, setRematchButton] = useState('Request Rematch');  
 
 
   // const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
@@ -40,6 +42,10 @@ function App() {
       share: true,
       shouldReconnect: () => false,
       onError: () => {console.error("WebSocket error observed.")},
+      onClose: (event) => {
+        alert("Connection lost, reloading page.");
+        window.location.reload(false);
+      },
       heartbeat: {
         message: '{"type":"ping"}',
         returnMessage: "ping",
@@ -48,6 +54,15 @@ function App() {
       },
     },
   )
+
+  const connectionStatus = {
+    [ReadyState.CONNECTING]: 'Connecting',
+    [ReadyState.OPEN]: 'Open. Backend is online.',
+    [ReadyState.CLOSING]: 'Closing',
+    [ReadyState.CLOSED]: 'Closed',
+    [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+  }[readyState];
+
 
   useEffect(() => {
       if (lastJsonMessage && lastJsonMessage.type === 'error'){
@@ -67,11 +82,14 @@ function App() {
         setOppForfeit(false);
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'game_state'){
+        console.log(lastJsonMessage)
         setGameState(lastJsonMessage.game_state);
         setOpponent(lastJsonMessage.opponent);
         setGameOver(lastJsonMessage.game_over);
         if (lastJsonMessage.game_over){setWinner(lastJsonMessage.winner);}
         else if (lastJsonMessage.game_state[9] === lastJsonMessage.game_state[10]){setTurn(true);}
+        else {setTurn(false);}
+        if (lastJsonMessage.game_state === "         OX" && lastJsonMessage.opponent.slice(4) === "_ai"){console.log('woo');sendJsonMessage({'type':'ai_first_move','user_id':userId, 'table_id':tableId});}
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'all_tables'){
         setTablesList(lastJsonMessage.tables)
@@ -91,7 +109,16 @@ function App() {
         setOppForfeit(true);
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'accept_rematch'){
+        console.log(lastJsonMessage)
         sendJsonMessage({'type':'get_table', 'user_id':userId, 'table_id':tableId})
+        setWinner('');
+        setGameOver(false)
+        setRematchButton('Request Rematch')
+      }
+      else if (lastJsonMessage && lastJsonMessage.type === 'error_rematch'){ 
+        alert(lastJsonMessage.error);
+        sendJsonMessage({'type': 'leave_table', 'user_id': userId, 'table_id': tableId})
+        setWinner('');
       }
       else{
       }
@@ -108,10 +135,12 @@ function App() {
   <Container maxWidth="sm">
 
   <CssBaseline />
-    <Box>
-      <header>
+    <Grid container>
+      <Grid item xs={8}>
         <h1>Tic Tac Toe!</h1>
-      </header>
+      </Grid>
+    <Grid item xs margin='auto'>Websocket: {connectionStatus}</Grid>
+    </Grid>
 
     {!login && <Login sendJsonMessage={sendJsonMessage} setLogin={setLogin} username={username} setUsername={setUsername} />}
 
@@ -122,10 +151,10 @@ function App() {
 
     {table && <Game username={username} setTable={setTable} gameState={gameState} sendJsonMessage={sendJsonMessage} userId={userId}
     tableId={tableId} turn={turn} setTurn={setTurn} opponent={opponent} winner={winner} gameOver={gameOver} oppForfeit={oppForfeit}
-     />}
+    rematchButton={rematchButton} setRematchButton={setRematchButton} />}
 
     {makingTable === true && <MakeTable sendJsonMessage={sendJsonMessage} userId={userId} setMakingTable={setMakingTable} />}
-    </Box>
+
 
 
       <br/>

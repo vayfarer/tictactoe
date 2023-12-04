@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Stack, Box, Button, Grid} from '@mui/material';
 
 export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn,
-    winner, gameOver, oppForfeit } ) => {
+    winner, gameOver, oppForfeit, rematchButton, setRematchButton, } ) => {
 
     function leave_table(){
         if (oppForfeit || gameOver || opponent === ''){
@@ -11,10 +11,7 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
         else if (window.confirm('Are you sure? Leaving the table will forfeit the game')) {
             sendJsonMessage({'type': 'leave_table', 'user_id': userId, 'table_id': tableId})
         } 
-    }
-
-    
-    const [rematchButton, setRematchButton] = useState('Request Rematch');  
+    }    
 
     function requestRematch(){
         sendJsonMessage({'type': 'rematch', 'user_id': userId, 'table_id': tableId})
@@ -23,7 +20,7 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
 
     function move(square){
         if (turn && !gameOver && !oppForfeit){
-            setTurn(false);
+            // setTurn(false);
             sendJsonMessage({'type': 'turn', 'user_id': userId, 'table_id': tableId, 'square':square})
         }
         else{
@@ -31,14 +28,16 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
         }
     }
 
+
     return (
         <>
         <Stack direction={'column'} spacing={2}>
         <Box>
             Logged in as <b>{username}</b> <br/>
             {!gameOver && <>You are player <b>{gameState[9]}</b>. It is {!turn &&<>not</>} your turn.<br/>
-            {opponent===""? <>Waiting for opponent to join.</> : <>Your opponent is {opponent}</>}<br/></>}
-            {!gameOver && oppForfeit && <>{opponent} has left the game and forfeited.<br/> </>}
+            {opponent===""? <>Waiting for opponent to join.</> : !oppForfeit&&<>Your opponent is {opponent}</>}<br/></>}
+            {!gameOver && oppForfeit && <>{opponent} has left the game and forfeited.<br/>
+            </>}
             {gameOver && (winner===''? <><b>Game over in draw!</b></>:<><b>Game over!<br/> {winner} is victorious!</b></>)}
         </Box>
         
@@ -68,7 +67,7 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
             <Button variant='outlined' fullWidth title='Request Rematch.' onClick={requestRematch}>{rematchButton}</Button>
             </Grid></>}
             <Grid item xs>
-            <Button fullWidth title='Leave tic tac toe game.' onClick={leave_table}>Back</Button>
+            <Button fullWidth variant={oppForfeit?'contained':'text'} title='Leave tic tac toe game.' onClick={leave_table}>Back to Lobby</Button>
             </Grid>
         </Grid>
         </Stack>
