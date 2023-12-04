@@ -28,7 +28,7 @@ function App() {
   const [winner, setWinner] = useState('');
   const [gameOver, setGameOver] = useState(false);
   const [oppForfeit, setOppForfeit] = useState(false);
-  const [rematchButton, setRematchButton] = useState('Request Rematch');  
+  const [rematchButton, setRematchButton] = useState('Request Rematch'); 
 
 
   // const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
@@ -82,7 +82,6 @@ function App() {
         setOppForfeit(false);
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'game_state'){
-        console.log(lastJsonMessage)
         setGameState(lastJsonMessage.game_state);
         setOpponent(lastJsonMessage.opponent);
         setGameOver(lastJsonMessage.game_over);
@@ -102,6 +101,7 @@ function App() {
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'accept_leave_table'){
         sendJsonMessage({'type':'get_all_tables'});
+        setGameState('         --');
         setTable(false);
         setWinner('');
       }
@@ -109,11 +109,13 @@ function App() {
         setOppForfeit(true);
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'accept_rematch'){
-        console.log(lastJsonMessage)
         sendJsonMessage({'type':'get_table', 'user_id':userId, 'table_id':tableId})
         setWinner('');
         setGameOver(false)
         setRematchButton('Request Rematch')
+      }
+      else if (lastJsonMessage && lastJsonMessage.type === 'request_rematch'){
+        setRematchButton('Accept Rematch')
       }
       else if (lastJsonMessage && lastJsonMessage.type === 'error_rematch'){ 
         alert(lastJsonMessage.error);
