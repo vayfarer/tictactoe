@@ -29,10 +29,9 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [oppForfeit, setOppForfeit] = useState(false);
   const [rematchButton, setRematchButton] = useState('Request Rematch'); 
-
-
-  // const WS_URL = `ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
-  const WS_URL = `ws://127.0.0.1:8000/ws`
+  
+  const WS_URL=`ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
+  // const WS_URL = `ws://127.0.0.1:8000/ws`
   const [socketUrl, setSocketUrl] = useState(WS_URL);
 
 
@@ -42,10 +41,10 @@ function App() {
       share: true,
       shouldReconnect: () => false,
       onError: () => {console.error("WebSocket error observed.")},
-      onClose: (event) => {
-        alert("Connection lost, reloading page.");
-        window.location.reload(false);
-      },
+      // onClose: (event) => {
+      //   alert("Connection lost, reloading page.");
+      //   window.location.reload(false);
+      // },
       heartbeat: {
         message: '{"type":"ping"}',
         returnMessage: "ping",
@@ -59,7 +58,7 @@ function App() {
     [ReadyState.CONNECTING]: 'Connecting',
     [ReadyState.OPEN]: 'Open. Backend is online.',
     [ReadyState.CLOSING]: 'Closing',
-    [ReadyState.CLOSED]: 'Closed',
+    [ReadyState.CLOSED]: 'Closed. Please reload the page.',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState];
 

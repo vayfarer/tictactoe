@@ -29,3 +29,4 @@ server/.gcloudignore
 server/server.iml
 ui/package-lock.json
 server/__pycache__
+ui/.env
