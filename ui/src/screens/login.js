@@ -42,7 +42,7 @@ export const Login = ( {sendJsonMessage, readyState} ) => {
             subheader={<ListSubheader>Updates and new features</ListSubheader>}
             >
                 <ListItem>
-                <ListItemText primary="Minor updates to UI interaction when websocket connection is closed unexpectedly." secondary="12/10/2023" />
+                <ListItemText primary="Minor updates to UI interaction when websocket connection is closed unexpectedly. Replaced default react icon with XO icon. Added how to play and about page." secondary="12/10/2023" />
                 </ListItem>
                 <ListItem>
                 <ListItemText primary="Implemented rematching. Updated UI with Material-UI. Implemented Play Now vs (easy) AI." secondary="12/03/2023" />

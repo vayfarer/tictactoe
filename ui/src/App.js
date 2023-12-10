@@ -1,17 +1,19 @@
-import logo from './logo.svg';
 import './App.css';
 import React, { useEffect, useState } from 'react';
 import useWebSocket, { ReadyState } from "react-use-websocket"
 
-import Box from '@mui/material/Box';
+// import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import { CssBaseline, Stack, Grid, Paper} from '@mui/material';
-import { styled } from '@mui/material/styles';
+import Stack from '@mui/material/Stack';
+import { Grid } from '@mui/material';
+import Button from '@mui/material/Button';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 import Login from './screens/login';
 import Lobby from './screens/lobby';
 import Game from './screens/game';
 import MakeTable from './screens/make_table';
+import AboutPage from './screens/aboutPage';
 
 function App() {
 
@@ -29,6 +31,7 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [oppForfeit, setOppForfeit] = useState(false);
   const [rematchButton, setRematchButton] = useState('Request Rematch'); 
+  const [about, setAbout] = useState(false);
   
   const WS_URL=`ws://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:8000/ws`
   // const WS_URL = `ws://127.0.0.1:8000/ws`
@@ -131,10 +134,11 @@ function App() {
       }
     }
     ,[lastJsonMessage]
-  )
+  );
 
-
-
+  const displayAbout = () => {
+    setAbout(!about);
+  }
 
   return (
     <>
@@ -143,11 +147,24 @@ function App() {
 
   {/* <CssBaseline /> */}
     <Grid container>
-      <Grid item xs={8}>
+      <Grid item xs={7}>
         <h1>Tic Tac Toe!</h1>
       </Grid>
-    <Grid item xs margin='auto'>Websocket: {connectionStatus}</Grid>
+    <Grid item xs={4} margin='auto'>Websocket: {connectionStatus}</Grid>
+    <Grid item xs={1} margin='auto'>
+      <Button onClick={displayAbout} title='How to play, and About'>
+        <HelpOutlineIcon fontSize='large'/>
+      </Button>
     </Grid>
+    </Grid>
+
+    {about && <Stack spacing={2}>
+    <AboutPage /> 
+    <Button variant='outlined' onClick={displayAbout} title='Close How to play and About'>
+    Close
+    </Button><br/></Stack>
+    }
+
 
     {!login && 
     <Login sendJsonMessage={sendJsonMessage} setLogin={setLogin} username={username} setUsername={setUsername} 
