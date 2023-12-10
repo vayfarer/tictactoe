@@ -56,11 +56,17 @@ function App() {
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'Connecting',
-    [ReadyState.OPEN]: 'Open. Backend is online.',
+    [ReadyState.OPEN]: 'Open',
     [ReadyState.CLOSING]: 'Closing',
-    [ReadyState.CLOSED]: 'Closed. Please reload the page.',
+    [ReadyState.CLOSED]: 'Closed',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState];
+
+  useEffect(() => {
+    if (readyState === ReadyState.CLOSED){
+      alert("Websocket connection lost.");
+    }
+  }, [readyState])
 
 
   useEffect(() => {
@@ -143,7 +149,9 @@ function App() {
     <Grid item xs margin='auto'>Websocket: {connectionStatus}</Grid>
     </Grid>
 
-    {!login && <Login sendJsonMessage={sendJsonMessage} setLogin={setLogin} username={username} setUsername={setUsername} />}
+    {!login && 
+    <Login sendJsonMessage={sendJsonMessage} setLogin={setLogin} username={username} setUsername={setUsername} 
+    readyState={readyState} />}
 
     {login && !table && !makingTable && 
     <Lobby setLogin={setLogin} username={username} setUsername={setUsername}

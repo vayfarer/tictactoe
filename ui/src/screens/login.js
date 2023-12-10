@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useWebSocket, { ReadyState } from "react-use-websocket"
 
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -7,12 +8,14 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListSubheader from '@mui/material/ListSubheader';
 
-export const Login = ( {sendJsonMessage} ) => {
+export const Login = ( {sendJsonMessage, readyState} ) => {
 
     function play_game(){
-        sendJsonMessage(
-            {'type':'login'}
-            )
+        if (readyState !== ReadyState.OPEN){
+            window.location.reload(false);
+        } else {
+            sendJsonMessage({'type':'login'});
+        }
     }
 
     return (
@@ -20,7 +23,11 @@ export const Login = ( {sendJsonMessage} ) => {
             <Stack spacing={2} direction="column">
             <Button size="large" variant="contained" 
             title='Enter the game lobby. You will be assigned a random username'
-             onClick={play_game}>Play Tic Tac Toe!</Button>
+             onClick={play_game}>
+                {(readyState === ReadyState.OPEN)?(
+                <>Play Tic Tac Toe!</>)
+                :(<>Websocket not open. Reload page?</>)}
+                </Button>
 
             <List
             sx={{
@@ -34,6 +41,9 @@ export const Login = ( {sendJsonMessage} ) => {
             }}
             subheader={<ListSubheader>Updates and new features</ListSubheader>}
             >
+                <ListItem>
+                <ListItemText primary="Minor updates to UI interaction when websocket connection is closed unexpectedly." secondary="12/10/2023" />
+                </ListItem>
                 <ListItem>
                 <ListItemText primary="Implemented rematching. Updated UI with Material-UI. Implemented Play Now vs (easy) AI." secondary="12/03/2023" />
                 </ListItem>
