@@ -61,13 +61,6 @@ function App() {
   }[readyState];
 
   useEffect(() => {
-    if (readyState === ReadyState.CLOSED){
-      alert("Websocket connection lost.");
-    }
-  }, [readyState])
-
-
-  useEffect(() => {
       if (lastJsonMessage && lastJsonMessage.type === 'error'){
         alert(lastJsonMessage.error);
       }
@@ -150,6 +143,9 @@ function App() {
       </Button>
     </Grid>
     </Grid>
+
+    {(readyState === ReadyState.CLOSED)&&
+    <Stack><h2>Websocket connection lost, please refresh the page.</h2></Stack>}
 
     {about && <Stack spacing={2}>
     <AboutPage /> 
