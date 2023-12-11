@@ -141,8 +141,8 @@ def hard_ai(ai_player: str, game_state: str) -> int:
     if 4 in available:
         return 4
     # return a random corner, or random spot if not available
-    corners_left = random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
-    return corners_left if corners_left else random.sample(list(available), 1)[0]
+    corners_left = list(available.intersection({0, 2, 6, 8}))
+    return random.sample(corners_left,k=1)[0] if corners_left else random.sample(list(available), 1)[0]
 
 
 def easy_ai(ai_player: str, game_state: str) -> int:
