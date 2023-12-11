@@ -1,6 +1,8 @@
 # tictactoe
 **tictactoe** is a course project for OSU CS 361 Software Engineering I (Fall 2023). Tictactoe demonstrates a number of technologies including React.js, Python FastAPI, Websockets, and Google Datastore. Users can enter an online game lobby and play tic-tac-toe live against other online users or AI. 
 
+Test it out [here](http://ec2-35-89-77-105.us-west-2.compute.amazonaws.com:3000/) (hosted on an AWS EC2 instance).
+
 # Software Design Narrative
 Several design choices in **tictactoe** were made for exploring and demonstrating technologies and would otherwise appear nonsensical for a tic-tac-toe online lobby. The game itself was chosen because of its simplicity. With unlimited time it would have been interesting to attempt a more complex game such as chinese checkers or go; however I did not want the project to focus on coding game logic. 
 
