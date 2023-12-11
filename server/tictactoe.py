@@ -8,7 +8,6 @@ import random
 # 345
 # 678
 
-
 def win_condition(player: str, game_state: str) -> bool:
     """
     :param player: "X" or "O"
@@ -115,61 +114,35 @@ def hard_ai(ai_player: str, game_state: str) -> int:
             else:
                 op_pieces.add(i)
 
-    if len(available) == 9:
-        # X turn
-        # return center most of the time, but sometimes return a corner
-        first_move = random.randint(0, 20) * 2
-        return first_move if first_move < 10 else 4
+    # O second turn or later
+    # win if possible
+    for i in available:
+        if move_win(ai_pieces, i):
+            return i
 
-    if len(available) == 8:
-        # O turn
-        # return center if available
-        if 4 in available:
-            return 4
-        # return a random corner if not available
-        return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
+    # block opponent win
+    for i in available:
+        if move_win(op_pieces, i):
+            return i
 
-    if len(available) == 7:
-        # X 2nd turn
-        # return center if available
-        if 4 in available:
-            return 4
-        # else if O's move was odd, ie. not corner, return a corner, force a win.
-        # or O placed center, forced victory impossible. Opposite corner slightly
-        # more optimal, but not necessary.
-        if op_pieces.pop() % 2 == 1 or op_pieces.pop() == 4:
-            return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
-        # else if 0's move was even, ie. a corner, forced win is impossible.
-        # pick some random square.
-        return random.sample(list(available), 1)[0]
+    # set up 2 move win
+    for i in available:
+        second_moves = (available - {i})
+        if two_move_win(second_moves, ai_pieces, i):
+            return i
 
-    if len(available) <= 6:
-        # O second turn or later
+    # block opponent two move win if possible
+    for i in available:
+        second_moves = (available - {i})
+        if two_move_win(second_moves, op_pieces, i):
+            return i
 
-        # win if possible
-        for i in available:
-            if move_win(ai_pieces, i):
-                return i
-
-        # block opponent win
-        for i in available:
-            if move_win(op_pieces, i):
-                return i
-
-        # set up 2 move win
-        for i in available:
-            second_moves = (available - {i})
-            if two_move_win(second_moves, ai_pieces, i):
-                return i
-
-        # block opponent two move win
-        for i in available:
-            second_moves = (available - {i})
-            if two_move_win(second_moves, op_pieces, i):
-                return i
-
-        # random move
-        return random.sample(list(available), 1)[0]
+    # return center if available
+    if 4 in available:
+        return 4
+    # return a random corner, or random spot if not available
+    corners_left = random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
+    return corners_left if corners_left else random.sample(list(available), 1)[0]
 
 
 def easy_ai(ai_player: str, game_state: str) -> int:
