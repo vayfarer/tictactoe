@@ -114,6 +114,7 @@ def hard_ai(ai_player: str, game_state: str) -> int:
             else:
                 op_pieces.add(i)
 
+<<<<<<< HEAD
     # O second turn or later
     # win if possible
     for i in available:
@@ -143,6 +144,40 @@ def hard_ai(ai_player: str, game_state: str) -> int:
     # return a random corner, or random spot if not available
     corners_left = random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
     return corners_left if corners_left else random.sample(list(available), 1)[0]
+=======
+    if len(available) >= 7:
+        # return center if available
+        if 4 in available:
+            return 4
+        # return a random corner if not available
+        return random.sample(list(available.intersection({0, 2, 6, 8})), 1)[0]
+    else:
+        # O second turn or later
+        # win if possible
+        for i in available:
+            if move_win(ai_pieces, i):
+                return i
+
+        # block opponent win
+        for i in available:
+            if move_win(op_pieces, i):
+                return i
+
+        # set up 2 move win
+        for i in available:
+            second_moves = (available - {i})
+            if two_move_win(second_moves, ai_pieces, i):
+                return i
+
+        # block opponent two move win if possible
+        for i in available:
+            second_moves = (available - {i})
+            if two_move_win(second_moves, op_pieces, i):
+                return i
+
+        # random move
+        return random.sample(list(available), 1)[0]
+>>>>>>> 8cbc31153f6788ffb8bbaef6b9a54737791af156
 
 
 def easy_ai(ai_player: str, game_state: str) -> int:
