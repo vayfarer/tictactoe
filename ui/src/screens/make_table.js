@@ -73,29 +73,6 @@ export const MakeTable = ( {sendJsonMessage, userId, setMakingTable} ) => {
             </Grid>
         </Stack>
         </form>
-        {/* <form onSubmit={make_table}>
-            <div>
-            <span>
-            Play As:&nbsp;
-            </span>
-            <span>
-                <select id="make_table_player">
-                <option value="X">X</option>
-                <option value="O">O</option>
-            </select>
-            </span></div>
-            <div><span>
-            Opponent:&nbsp;
-            </span><span>
-            <select id="make_table_opponent">
-                <option value="vacant">Vacant</option>
-                <option value="easy_ai">Easy AI</option>
-                <option value="hard_ai">Hard AI</option>
-            </select>
-            </span></div>
-            <button type="submit">Make Game Table!</button>
-            <button title='Exit making table.' onClick={to_lobby}>Back</button>
-            </form> */}
         </>
     );
 }

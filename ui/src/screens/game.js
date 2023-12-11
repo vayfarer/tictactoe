@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import { Stack, Box, Button, Grid} from '@mui/material';
 
 export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage, userId, tableId, turn, setTurn,
@@ -20,7 +19,6 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
 
     function move(square){
         if (turn && !gameOver && !oppForfeit && gameState[square] ===" "){
-            // setTurn(false);
             sendJsonMessage({'type': 'turn', 'user_id': userId, 'table_id': tableId, 'square':square})
         }
         else{
@@ -64,7 +62,7 @@ export const Game = ( {username, opponent, setTable, gameState, sendJsonMessage,
         </Box>
         <Grid container>{ gameOver && <>
             <Grid item xs>
-            <Button variant='outlined' fullWidth title='Request Rematch.' onClick={requestRematch}>{rematchButton}</Button>
+            <Button variant='outlined' fullWidth title='Request Rematch. Players will switch positions.' onClick={requestRematch}>{rematchButton}</Button>
             </Grid></>}
             <Grid item xs>
             <Button fullWidth variant={oppForfeit?'contained':'text'} title='Leave tic tac toe game.' onClick={leave_table}>Back to Lobby</Button>

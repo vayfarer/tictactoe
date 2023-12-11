@@ -2,7 +2,6 @@ import './App.css';
 import React, { useEffect, useState } from 'react';
 import useWebSocket, { ReadyState } from "react-use-websocket"
 
-// import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import { Grid } from '@mui/material';
@@ -44,10 +43,6 @@ function App() {
       share: true,
       shouldReconnect: () => false,
       onError: () => {console.error("WebSocket error observed.")},
-      // onClose: (event) => {
-      //   alert("Connection lost, reloading page.");
-      //   window.location.reload(false);
-      // },
       heartbeat: {
         message: '{"type":"ping"}',
         returnMessage: "ping",
@@ -144,8 +139,6 @@ function App() {
     <>
 
   <Container maxWidth="sm">
-
-  {/* <CssBaseline /> */}
     <Grid container>
       <Grid item xs={7}>
         <h1>Tic Tac Toe!</h1>

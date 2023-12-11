@@ -1,4 +1,3 @@
-import React, { useEffect, useState } from 'react';
 import useWebSocket, { ReadyState } from "react-use-websocket"
 
 import Button from '@mui/material/Button';

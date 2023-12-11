@@ -21,10 +21,7 @@ ui/.env.production.local
 ui/npm-debug.log*
 ui/yarn-debug.log*
 ui/yarn-error.log*
-server/.idea/.gitignore
-server/.idea/misc.xml
-server/.idea/modules.xml
-server/.idea/vcs.xml
+server/.idea/
 server/.gcloudignore
 server/server.iml
 ui/package-lock.json
